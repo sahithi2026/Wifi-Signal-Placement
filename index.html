@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WiFi Signal Placement System</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --border: rgba(255,255,255,0.08); --text: #e8eaf0; --muted: #7a7f9a;
+    --accent: #4f8ef7; --green: #3ecf8e; --orange: #f5a623; --red: #e05c5c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  .badge { font-size: 11px; background: rgba(79,142,247,0.15); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); border-radius: 20px; padding: 3px 10px; }
+  .main { display: flex; min-height: calc(100vh - 65px); }
+  .sidebar { width: 270px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 18px; display: flex; flex-direction: column; gap: 20px; }
+  .section-title { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .control-row label { font-size: 13px; color: var(--muted); }
+  select, input[type=range] { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-size: 13px; cursor: pointer; width: 90px; }
+  .val-badge { font-size: 13px; font-weight: 600; color: var(--accent); }
+  .mode-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .mode-btn { padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .mode-btn.active { background: rgba(79,142,247,0.15); border-color: var(--accent); color: var(--accent); }
+  .algo-btns { display: flex; flex-direction: column; gap: 8px; }
+  .algo-btn { padding: 11px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+  .algo-btn:hover { border-color: var(--accent); background: rgba(79,142,247,0.1); }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; margin-left: auto; }
+  .tag-greedy { background: rgba(245,166,35,0.15); color: var(--orange); }
+  .tag-dp { background: rgba(62,207,142,0.15); color: var(--green); }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .s-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .s-val { font-size: 22px; font-weight: 600; }
+  .log-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--muted); line-height: 1.6; min-height: 60px; margin-top: 8px; }
+  .legend { display: flex; flex-direction: column; gap: 7px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .leg-box { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px; flex-direction: column; gap: 16px; }
+  .canvas-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  canvas { display: block; border-radius: 8px; cursor: crosshair; }
+  .canvas-label { font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px; }
+  .algo-info { display: flex; gap: 16px; flex-wrap: wrap; width: 100%; max-width: 560px; }
+  .algo-card { flex: 1; min-width: 160px; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: var(--surface2); }
+  .algo-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .algo-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .complexity { margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .complexity span { color: var(--accent); font-family: monospace; }
+  @media (max-width: 700px) { .main { flex-direction: column; } .sidebar { width: 100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📡 WiFi Signal Placement System</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <span class="badge">Greedy Algorithm</span>
+    <span class="badge">Dynamic Programming</span>
+    <span class="badge">CCC Project 2025</span>
+  </div>
+</header>
+<div class="main">
+  <div class="sidebar">
+    <div>
+      <div class="section-title">Grid Settings</div>
+      <div class="control-row"><label>Grid Size</label>
+        <select id="gridSize">
+          <option value="8">8x8</option>
+          <option value="10" selected>10x10</option>
+          <option value="12">12x12</option>
+          <option value="15">15x15</option>
+        </select></div>
+      <div class="control-row"><label>Signal Radius</label>
+        <input type="range" id="radius" min="1" max="5" value="2">
+        <span class="val-badge" id="radiusVal">2</span></div>
+    </div>
+    <div>
+      <div class="section-title">Draw Mode</div>
+      <div class="mode-btns">
+        <button class="mode-btn active" id="btnWall" onclick="setMode('wall')">🧱 Wall</button>
+        <button class="mode-btn" id="btnErase" onclick="setMode('erase')">🗑 Erase</button>
+        <button class="mode-btn" onclick="clearGrid()" style="grid-column:span 2;">Clear All</button>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Run Algorithm</div>
+      <div class="algo-btns">
+        <button class="algo-btn" onclick="runGreedy()">⚡ Greedy<span class="tag tag-greedy">GREEDY</span></button>
+        <button class="algo-btn" onclick="runDP()">🧠 DP Placement<span class="tag tag-dp">DP</span></button>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Results</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="s-label">Routers</div><div class="s-val" id="routerCount" style="color:var(--orange)">—</div></div>
+        <div class="stat-card"><div class="s-label">Coverage</div><div class="s-val" id="coverPct" style="color:var(--green)">—</div></div>
+        <div class="stat-card" style="grid-column:span 2"><div class="s-label">Algorithm</div><div class="s-val" id="algoName" style="font-size:16px;color:var(--accent)">None yet</div></div>
+      </div>
+      <div class="log-box" id="log">Draw walls then click Run Greedy or Run DP.</div>
+    </div>
+    <div>
+      <div class="section-title">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><div class="leg-box" style="background:#1e2235;border:1px solid #3a3f55"></div>Open cell</div>
+        <div class="legend-item"><div class="leg-box" style="background:#3a3f55"></div>Wall</div>
+        <div class="legend-item"><div class="leg-box" style="background:#f5a623;border-radius:50%"></div>Router</div>
+        <div class="legend-item"><div class="leg-box" style="background:#1a2d4a"></div>Covered</div>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-area">
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="480" height="480"></canvas>
+      <div class="canvas-label">Click or drag to draw walls • Run an algorithm to place routers</div>
+    </div>
+    <div class="algo-info">
+      <div class="algo-card"><h3 style="color:var(--orange)">Greedy Algorithm</h3><p>Picks the cell that covers the most uncovered neighbors at each step. Fast but may not always give the global optimum.</p><div class="complexity">Time: <span>O(N4)</span> Space: <span>O(N2)</span></div></div>
+      <div class="algo-card"><h3 style="color:var(--green)">Dynamic Programming</h3><p>Splits grid into regions using flood-fill, then solves each region as an independent sub-problem for better placement.</p><div class="complexity">Time: <span>O(N4)</span> Space: <span>O(N2)</span></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let GRID=10,RADIUS=2,mode='wall',grid=[],routers=[],covered=[],painting=false;
+function initGrid(){GRID=parseInt(document.getElementById('gridSize').value);grid=Array.from({length:GRID},()=>Array(GRID).fill(0));routers=[];covered=resetCov();updateStats('—','—','None yet','Draw walls then run an algorithm.');draw();}
+function resetCov(){return Array.from({length:GRID},()=>Array(GRID).fill(false));}
+function cs(){return 480/GRID;}
+function draw(){
+  const c=cs();ctx.clearRect(0,0,480,480);
+  for(let r=0;r<GRID;r++)for(let col=0;col<GRID;col++){
+    const x=col*c,y=r*c;
+    ctx.fillStyle=grid[r][col]===1?'#3a3f55':(covered[r]&&covered[r][col]?'#1a2d4a':'#1e2235');
+    ctx.beginPath();ctx.roundRect(x+1,y+1,c-2,c-2,3);ctx.fill();
+  }
+  for(const {r,col} of routers){
+    const x=col*c+c/2,y=r*c+c/2;
+    ctx.fillStyle='#f5a623';ctx.beginPath();ctx.arc(x,y,c*0.28,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font=`bold ${Math.max(10,c*0.25)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('R',x,y);
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
+  for(let i=0;i<=GRID;i++){ctx.beginPath();ctx.moveTo(i*c,0);ctx.lineTo(i*c,480);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*c);ctx.lineTo(480,i*c);ctx.stroke();}
+}
+canvas.addEventListener('mousedown',e=>{painting=true;paint(e);});
+canvas.addEventListener('mousemove',e=>{if(painting)paint(e);});
+window.addEventListener('mouseup',()=>painting=false);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();painting=true;paint(e.touches[0]);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(painting)paint(e.touches[0]);},{passive:false});
+window.addEventListener('touchend',()=>painting=false);
+function paint(e){
+  const rect=canvas.getBoundingClientRect(),c=cs();
+  const col=Math.floor((e.clientX-rect.left)*(480/rect.width)/c);
+  const r=Math.floor((e.clientY-rect.top)*(480/rect.height)/c);
+  if(r<0||r>=GRID||col<0||col>=GRID)return;
+  grid[r][col]=(mode==='wall')?1:0;
+  routers=[];covered=resetCov();
+  updateStats('—','—','None yet','Walls changed. Run again.');draw();
+}
+function setMode(m){mode=m;document.getElementById('btnWall').classList.toggle('active',m==='wall');document.getElementById('btnErase').classList.toggle('active',m==='erase');}
+function clearGrid(){initGrid();}
+document.getElementById('gridSize').addEventListener('change',initGrid);
+document.getElementById('radius').addEventListener('input',function(){RADIUS=parseInt(this.value);document.getElementById('radiusVal').textContent=RADIUS;routers=[];covered=resetCov();draw();});
+function totalOpen(){let n=0;for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(grid[r][c]!==1)n++;return n;}
+function coveredOpen(cov){let n=0;for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(grid[r][c]!==1&&cov[r][c])n++;return n;}
+function uncovered(cov){let n=0;for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(!cov[r][c]&&grid[r][c]!==1)n++;return n;}
+function coverCells(cov,r,c){for(let i=0;i<GRID;i++)for(let j=0;j<GRID;j++)if(Math.abs(i-r)+Math.abs(j-c)<=RADIUS)cov[i][j]=true;}
+function coverCount(cov,r,c){let n=0;for(let i=0;i<GRID;i++)for(let j=0;j<GRID;j++)if(!cov[i][j]&&grid[i][j]!==1&&Math.abs(i-r)+Math.abs(j-c)<=RADIUS)n++;return n;}
+function updateStats(r,p,a,l){document.getElementById('routerCount').textContent=r;document.getElementById('coverPct').textContent=p;document.getElementById('algoName').textContent=a;document.getElementById('log').textContent=l;}
+function runGreedy(){
+  const cov=resetCov(),rts=[];let iters=0;
+  while(uncovered(cov)>0&&iters++<GRID*GRID*2){
+    let best=-1,br=-1,bc=-1;
+    for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){if(grid[r][c]===1)continue;const cnt=coverCount(cov,r,c);if(cnt>best){best=cnt;br=r;bc=c;}}
+    if(best<=0)break;rts.push({r:br,col:bc});coverCells(cov,br,bc);
+  }
+  routers=rts;covered=cov;
+  const pct=totalOpen()>0?Math.round(coveredOpen(cov)*100/totalOpen()):0;
+  updateStats(rts.length,pct+'%','Greedy',`Greedy placed ${rts.length} router(s) covering ${pct}% of open cells. It picked the locally best spot at each step.`);
+  draw();
+}
+function runDP(){
+  const cov=resetCov(),rts=[],visited=Array.from({length:GRID},()=>Array(GRID).fill(false));
+  function getRegion(sr,sc){const q=[[sr,sc]],reg=[];visited[sr][sc]=true;while(q.length){const[r,c]=q.shift();reg.push([r,c]);for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=r+dr,nc=c+dc;if(nr>=0&&nr<GRID&&nc>=0&&nc<GRID&&!visited[nr][nc]&&grid[nr][nc]!==1){visited[nr][nc]=true;q.push([nr,nc]);}}}return reg;}
+  function solveRegion(reg){let unc=reg.filter(([r,c])=>!cov[r][c]);while(unc.length>0){let best=-1,br=-1,bc=-1;for(const[r,c]of reg){if(grid[r][c]===1)continue;let cnt=0;for(const[ur,uc]of unc)if(Math.abs(ur-r)+Math.abs(uc-c)<=RADIUS)cnt++;if(cnt>best){best=cnt;br=r;bc=c;}}if(br===-1||best===0)break;rts.push({r:br,col:bc});coverCells(cov,br,bc);unc=reg.filter(([r,c])=>!cov[r][c]);}}
+  let iters=0;while(uncovered(cov)>0&&iters++<GRID*GRID){let sr=-1,sc=-1;outer:for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(!cov[r][c]&&!visited[r][c]&&grid[r][c]!==1){sr=r;sc=c;break outer;}if(sr===-1)break;solveRegion(getRegion(sr,sc));}
+  routers=rts;covered=cov;
+  const pct=totalOpen()>0?Math.round(coveredOpen(cov)*100/totalOpen()):0;
+  updateStats(rts.length,pct+'%','Dynamic Prog.',`DP placed ${rts.length} router(s) covering ${pct}% of open cells. It split the grid into regions and solved each as a sub-problem.`);
+  draw();
+}
+initGrid();
+</script>
+</body>
+</html>
